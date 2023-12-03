@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <regex>
 
 struct Account {
     std::string accountNumber;
@@ -58,10 +59,63 @@ std::map<std::string, Account> deserializeAccounts(const std::string& filename) 
 }
 
 int main() {
-    std::map<std::string, Account> accountList;
-    accountList = deserializeAccounts("accounts.txt");
+    std::regex accountPattern("\\d{5}");
+    std::regex pinPattern("\\d{3}");    
+    std::regex fundsPattern("\\d+\\.\\d{2}");
 
-    for (const auto& account : accountList) {
+    while(true) {
+        std::string account;
+        std::string password;
+        std::string funds;
+
+        std::cout << "---------------------------------" << std::endl;
+        std::cout << "Please enter your account number: ";
+        std::cin >> account;
+        if (account == "x") {
+            std::cout << "Quit!" << std::endl;
+            break;
+        }
+        if (!std::regex_match(account, accountPattern)) {
+            std::cout << "Invalid account number format." << std::endl;
+            continue;
+        }            
+
+        std::cout << "Please enter your password: ";
+        std::cin >> password;
+        if (!std::regex_match(password, pinPattern)) {
+            std::cout << "Invalid account pin format." << std::endl;
+            continue;
+        }        
+
+        std::cout << "Funds: ";
+        std::cin >> funds;
+        if (!std::regex_match(funds, fundsPattern)) {
+            std::cout << "Invalid funds format." << std::endl;
+            continue;
+        }
+        
+        std::map<std::string, Account> accountList;
+        accountList = deserializeAccounts("accounts.txt");
+
+        // Look for existing account
+        auto it = accountList.find(account);
+        if (it != accountList.end()) {
+            Account& bankrecord = it->second;
+            bankrecord.accountNumber = account;
+            bankrecord.accountPin = password;
+            bankrecord.funds = funds;
+        } else {
+            Account newrecord;
+            newrecord.accountNumber = account;
+            newrecord.accountPin = password;
+            newrecord.funds = funds;
+            accountList[account] = newrecord;
+        }
+        
+        serializeAccounts(accountList, "accounts.txt");
+    }
+
+    /*for (const auto& account : accountList) {
         std::cout << "Account Number: " << account.second.accountNumber << std::endl;
         std::cout << "Account Pin: " << account.second.accountPin << std::endl;
         std::cout << "Funds: " << account.second.funds << std::endl;
@@ -87,7 +141,9 @@ int main() {
         std::cout << "----------------------" << std::endl;
     }
 
+
     serializeAccounts(accountList, "accounts.txt");
 
+    */
     return 0;
 }
