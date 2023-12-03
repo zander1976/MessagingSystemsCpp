@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -89,27 +90,35 @@ int main() {
 
         std::cout << "Recieved: " << message.msgType << " - " << message.msgResult << std::endl;
 
-        //std::cout << "Received Login Request: Account - " << messageRecieved.account
-        //          << ", Password - " << receivedLogin.password << std::endl;
+        switch (message.msgType) {
+            case LOGIN_REQUEST:
+                std::string account;
+                std::string password;
+                std::string resultString(message.msgResult);
+                std::istringstream ss(resultString);
+                std::getline(ss, account, ',');
+                std::getline(ss, password, '\0');
 
-        GenericMessage results;
-        results.msgType = LOGIN_RESPONSE;
-        strcpy(results.msgResult, "hello world");
-/*
-        if (strcmp(receivedLogin.account, "1234") == 0) {
-            strncpy(results.msgResult, "WRONG_PIN", sizeof(results.msgResult));
-        } else if (strcmp(receivedLogin.account, "4321") == 0) {
-            strncpy(results.msgResult, "LOCKED", sizeof(results.msgResult));
-        } else if (strcmp(receivedLogin.account, receivedLogin.password) == 0) {
-            strncpy(results.msgResult, "LOGIN_OK", sizeof(results.msgResult));
-        } else {
-            // Handle other cases here
-        }
-*/
-  
-        if (msgsnd(clientid, &results, sizeof(results) - sizeof(long), 0) == -1) {
-            std::cerr << "Failed to send message: " << std::endl;
-            break;
+                // Using std::getline to split the string by comma
+                std::cout << "Received Login Request: Account - " << account
+                          << ", Password - " << password << std::endl;
+
+                GenericMessage results;
+                results.msgType = LOGIN_RESPONSE;
+                if (account == "1234") {
+                    strncpy(results.msgResult, "WRONG_PIN", sizeof(results.msgResult));
+                } else if (account == "4321") {
+                    strncpy(results.msgResult, "LOCKED", sizeof(results.msgResult));
+                } else if (account == password) {
+                    strncpy(results.msgResult, "LOGIN_OK", sizeof(results.msgResult));
+                } else {
+                    strncpy(results.msgResult, "FAILED", sizeof(results.msgResult));
+                }
+                if (msgsnd(clientid, &results, sizeof(results) - sizeof(long), 0) == -1) {
+                    std::cerr << "Failed to send message: " << std::endl;
+                    break;
+                }
+                break;
         }
    }
 

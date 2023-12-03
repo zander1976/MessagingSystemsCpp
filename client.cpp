@@ -124,20 +124,37 @@ int main() {
 
         std::cout << "Recieved: " << response.msgType << " - " << response.msgResult << std::endl;
 
-/*
+        std::string resultString(response.msgResult);
+
         if (response.msgType == LOGIN_RESPONSE) {
-            if (strcmp(response.msgResult, "WRONG_PIN") == 0) {
-                std::cout << "Login PIN is wrong." << std::endl;
-            } else if (strcmp(response.msgResult, "LOCKED") == 0) {
-                std::cout << "Login account is locked." << std::endl;
-            } else if (strcmp(response.msgResult, "LOGIN_OK") == 0) {
-                std::cout << "Login successful!" << std::endl;
-                break; // Exit the loop on successful login
+            if (resultString == "WRONG_PIN") {
+                std::cout << "Wrong Password" << std::endl;
+                continue;
+            } else if (resultString == "LOCKED") {
+                std::cout << "Locked" << std::endl;
+                break;
+            } else if (resultString == "LOGIN_OK") {
+                std::cout << "Login Success: " << std::endl;
+                break;
             } else {
-                std::cout << "Unknown response received." << std::endl;
+                std::cout << resultString << std::endl;
+                std::perror("No idea how we got here!");
             }
+        } else {
+            std::perror("No idea how we got here!");
         }
-*/
+
+        // Logged in
+        std::string choice; 
+        std::string amount; 
+        std::cout << "Menu (balance or withdraw): ";
+        std::cin >> choice;
+        if (choice == "balance") {
+
+        } else if (choice == "withdraw") {
+            std::cout << "Menu (balance or withdraw): ";
+            std::cin >> amount;
+        }
     }
 
     // Delete the server queue
