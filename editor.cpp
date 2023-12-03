@@ -87,5 +87,7 @@ int main() {
         std::cout << "----------------------" << std::endl;
     }
 
+    serializeAccounts(accountList, "accounts.txt");
+
     return 0;
 }
