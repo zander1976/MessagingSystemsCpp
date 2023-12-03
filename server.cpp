@@ -67,19 +67,7 @@ int main() {
         }
         // Discard received message
     }    
-/*
-    // Delete the server queue
-    if ((msgctl(serverid, IPC_RMID, nullptr)) == -1) {
-        std::perror("Error deleting server queue");
-    }
 
-    // Delete the client queue
-    if ((msgctl(clientid, IPC_RMID, nullptr)) == -1) {
-       std::perror("Error deleting client queue");
-    }
-     
-    return 0;
-*/
     while (true) {
         GenericMessage message;
 
@@ -89,14 +77,14 @@ int main() {
         }
 
         std::cout << "Recieved: " << message.msgType << " - " << message.msgResult << std::endl;
-
+        std::string resultString(message.msgResult);
+        std::istringstream ss(resultString);
+        GenericMessage results;
         switch (message.msgType) {
-            case LOGIN_REQUEST:
+            case LOGIN_REQUEST: {
                 std::cout << "LOGIN_REQUEST" << std::endl;
                 std::string account;
                 std::string password;
-                std::string resultString(message.msgResult);
-                std::istringstream ss(resultString);
                 std::getline(ss, account, ',');
                 std::getline(ss, password, '\0');
 
@@ -104,7 +92,6 @@ int main() {
                 std::cout << "Received Login Request: Account - " << account
                           << ", Password - " << password << std::endl;
 
-                GenericMessage results;
                 results.msgType = LOGIN_RESPONSE;
                 if (account == "1234") {
                     strncpy(results.msgResult, "WRONG_PIN", sizeof(results.msgResult));
@@ -115,11 +102,31 @@ int main() {
                 } else {
                     strncpy(results.msgResult, "FAILED", sizeof(results.msgResult));
                 }
-                if (msgsnd(clientid, &results, sizeof(results) - sizeof(long), 0) == -1) {
-                    std::cerr << "Failed to send message: " << std::endl;
-                    break;
-                }
+                //if (msgsnd(clientid, &results, sizeof(results) - sizeof(long), 0) == -1) {
+                //    std::cerr << "Failed to send message: " << std::endl;
+                //    break;
+                //}
                 break;
+            }
+            case BALANCE_REQUEST: {
+                std::cout << "LOGIN_REQUEST" << std::endl;
+                results.msgType = BALANCE_RESPONSE;
+                break;
+            }
+            case WITHDRAW_REQUEST: {
+                std::cout << "LOGIN_REQUEST" << std::endl;
+                results.msgType = WITHDRAW_RESPONSE;
+                strncpy(results.msgResult, "100", sizeof(results.msgResult));
+                //if (msgsnd(clientid, &results, sizeof(results) - sizeof(long), 0) == -1) {
+                //    std::cerr << "Failed to send message: " << std::endl;
+                //    break;
+                //}
+                break;
+            }
+        }
+        if (msgsnd(clientid, &results, sizeof(results) - sizeof(long), 0) == -1) {
+            std::cerr << "Failed to send message: " << std::endl;
+            break;
         }
    }
 

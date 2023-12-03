@@ -67,19 +67,6 @@ int main() {
         // Discard received message
     }    
 
-/*
-    // Delete the server queue
-    if ((msgctl(serverid, IPC_RMID, nullptr)) == -1) {
-        std::perror("Error deleting server queue");
-    }
-
-    // Delete the client queue
-    if ((msgctl(clientid, IPC_RMID, nullptr)) == -1) {
-       std::perror("Error deleting client queue");
-    }
-     
-    return 0;
-*/
     while (true) {
         GenericMessage message;
         std::string account;
@@ -135,25 +122,52 @@ int main() {
                 break;
             } else if (resultString == "LOGIN_OK") {
                 std::cout << "Login Success: " << std::endl;
-                break;
             } else {
                 std::cout << resultString << std::endl;
                 std::perror("No idea how we got here!");
+                break;
             }
         } else {
             std::perror("No idea how we got here!");
         }
 
-        // Logged in
-        std::string choice; 
-        std::string amount; 
-        std::cout << "Menu (balance or withdraw): ";
-        std::cin >> choice;
-        if (choice == "balance") {
+        while(true) {
+            // Logged in
+            std::string choice; 
+            std::string amount; 
+            std::cout << "Menu (balance or withdrawal): ";
+            std::cin >> choice;
 
-        } else if (choice == "withdraw") {
-            std::cout << "Menu (balance or withdraw): ";
-            std::cin >> amount;
+            GenericMessage menuMessage;
+
+            if (choice == "balance") {
+                menuMessage.msgType = BALANCE_REQUEST;
+
+            } else if (choice == "withdrawal") {
+                menuMessage.msgType = WITHDRAW_REQUEST;
+                std::cout << "Menu (balance or withdraw): ";
+                std::cin >> amount;
+
+                // Copy the string to message.msgResult with null-termination
+                std::strncpy(message.msgResult, amount.c_str(), sizeof(message.msgResult) - 1);
+                message.msgResult[sizeof(message.msgResult) - 1] = '\0'; // Ensure null-termination
+
+                // Ensure the rest of the buffer is null-terminated if needed
+                if (amount.length() < sizeof(message.msgResult)) {
+                    std::memset(message.msgResult + amount.length(), '\0', sizeof(message.msgResult) - amount.length());
+                }                
+            } else {
+                continue;
+            }
+            if (msgsnd(serverid, &menuMessage, sizeof(menuMessage) - sizeof(long), 0) == -1) {
+                std::perror("Send message failed");
+                break;
+            }
+
+            GenericMessage response;
+            msgrcv(clientid, &response, sizeof(response) - sizeof(long), 0, 0);
+
+            std::cout << "Recieved: " << response.msgType << " - " << response.msgResult << std::endl;
         }
     }
 
