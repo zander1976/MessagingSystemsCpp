@@ -7,7 +7,7 @@
 
 int main() {
     // Create the message queue
-    key_t serverKey = ftok("./serer", 49);
+    key_t serverKey = ftok("./server", 49);
     if (serverKey == -1) {
         std::perror("Server Key error");
         exit(1);

@@ -92,6 +92,7 @@ int main() {
 
         switch (message.msgType) {
             case LOGIN_REQUEST:
+                std::cout << "LOGIN_REQUEST" << std::endl;
                 std::string account;
                 std::string password;
                 std::string resultString(message.msgResult);
