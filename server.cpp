@@ -9,6 +9,23 @@
 #include "messages.h"
 #include "accounts.h"
 
+int convertToCents(const std::string& str) {
+    double value;
+    std::istringstream iss(str);
+    iss >> value;
+    int cents = static_cast<int>(value * 100); 
+    return cents;
+}
+
+std::string centsToDollars(int cents) {
+    double dollars = static_cast<double>(cents) / 100.0;
+
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2) << dollars;
+    return oss.str();
+}
+
+
 class ServerMessageHandler : public MessageHandler {
 private: 
     bool running = true;
@@ -78,7 +95,7 @@ public:
             sendMessage(BALANCE_FUNDS, it->second.funds);
             return;
         } 
-        sendMessage(BALANCE_FUNDS, "0.00");
+        sendMessage(ERROR, "Account not found!");
     }
 
     virtual void onWithdrawRequest(std::string message) override {
@@ -86,11 +103,19 @@ public:
         accountList = deserializeAccounts("accounts.txt");
         auto it = accountList.find(loggedInAccount);
         if (it != accountList.end()) {
-            sendMessage(WITHDRAW_FUNDS_OK, it->second.funds);
+            int balance = convertToCents(it->second.funds);
+            int withdrawalAmount = convertToCents(message);
+
+            int resultInCents = balance - withdrawalAmount; 
+            if (resultInCents < 0) {
+                sendMessage(WITHDRAW_NSF, "");
+            }
+            it->second.funds = centsToDollars(resultInCents);
+            serializeAccounts(accountList, "accounts.txt");
+            sendMessage(WITHDRAW_FUNDS_OK, message);
             return;
         } 
-
-        sendMessage(WITHDRAW_NSF, "0.00");
+        sendMessage(ERROR, "Account not found!");
     }
 
     virtual void onQuit() override {

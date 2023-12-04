@@ -2,7 +2,7 @@
 #define __MESSAGES_H__
 
 enum MsgTypes {
-    NONE,
+    ERROR,
     LOGIN_REQUEST,
     LOGIN_PIN_WRONG,
     LOGIN_LOCKED,
