@@ -36,7 +36,7 @@ private:
 
 public:
     ServerMessageHandler(key_t sendKey, key_t receiveKey, key_t editorKey) : MessageHandler(sendKey, receiveKey) {
-        editorId = msgget(sendKey, 0666 | IPC_CREAT);
+        editorId = msgget(editorKey, 0666 | IPC_CREAT);
         if (editorId == -1) {
             std::perror("Error creating server queue");
         }
