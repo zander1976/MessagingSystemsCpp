@@ -28,13 +28,20 @@ std::string centsToDollars(int cents) {
 
 class ServerMessageHandler : public MessageHandler {
 private: 
+    int editorId;
     bool running = true;
     int loginAttempts = 0;
     std::string loggedInAccount; 
     std::map<std::string, Account> accountList;
 
 public:
-    ServerMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {}
+    ServerMessageHandler(key_t sendKey, key_t receiveKey, key_t editorKey) : MessageHandler(sendKey, receiveKey) {
+        editorId = msgget(sendKey, 0666 | IPC_CREAT);
+        if (editorId == -1) {
+            std::perror("Error creating server queue");
+        }
+        clearOldMessage(editorId);        
+    }
 
     ~ServerMessageHandler() {
         std::cout << "MessageHandler destructor:" << std::endl;
@@ -45,6 +52,11 @@ public:
 
         // Delete the client queue
         if (msgctl(receiveId, IPC_RMID, nullptr) == -1) {
+            std::perror("Error deleting client queue.");
+        }
+
+        // Delete the client queue
+        if (msgctl(editorId, IPC_RMID, nullptr) == -1) {
             std::perror("Error deleting client queue.");
         }
     } 
@@ -118,11 +130,15 @@ public:
         sendMessage(ERROR, "Account not found!");
     }
 
+    virtual void onUpdateDatabaseRequest() {
+        std::cout << "onUpdateDatabase: " << std::endl;
+        sendMessage(UPDATE_DATABASE_RESPONSE, "", editorId);
+    }
+
     virtual void onQuit() override {
         std::cout << "onQuit" << std::endl;
         running=false;
     }
-
 };
 
 int main() {
@@ -138,7 +154,13 @@ int main() {
         exit(1);
     }
 
-    ServerMessageHandler server(clientkey, serverKey);
+    key_t editorkey = ftok("./editor.cpp", 51);
+    if (editorkey == -1) {
+        std::perror("Editor Key error");
+        exit(1);
+    }
+
+    ServerMessageHandler server(clientkey, serverKey, editorkey);
 
     server.WaitForMessage();
     

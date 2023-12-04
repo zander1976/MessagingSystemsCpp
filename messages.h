@@ -12,7 +12,8 @@ enum MsgTypes {
     WITHDRAW_REQUEST,
     WITHDRAW_FUNDS_OK,
     WITHDRAW_NSF,
-    UPDATE_DATABASE,
+    UPDATE_DATABASE_REQUEST,
+    UPDATE_DATABASE_RESPONSE,
     QUIT,
 };
 
@@ -46,18 +47,22 @@ protected:
         }
     }
 
-    int sendMessage(MsgTypes type, std::string message) {
+    int sendMessage(MsgTypes type, std::string message, int queue_id) {
         GenericMessage outgoingMessage;
         outgoingMessage.msgType = type;
         // Ensure null-termination by explicitly setting the last character to '\0'
         std::strncpy(outgoingMessage.msgResult, message.c_str(), sizeof(outgoingMessage.msgResult) - 1);
         outgoingMessage.msgResult[sizeof(outgoingMessage.msgResult) - 1] = '\0';
 
-        if (msgsnd(senderId, &outgoingMessage, sizeof(outgoingMessage) - sizeof(long), 0) == -1) {
+        if (msgsnd(queue_id, &outgoingMessage, sizeof(outgoingMessage) - sizeof(long), 0) == -1) {
             std::perror("Send message failed");
             return -1;
         }
         return 0;
+    }
+
+    int sendMessage(MsgTypes type, std::string message) {
+        return sendMessage(type, message, senderId);
     }
 
     int receiveMessage() {
@@ -100,8 +105,11 @@ protected:
             case WITHDRAW_NSF:
                 onWithdrawNSF();
                 break;
-            case UPDATE_DATABASE:
-                onUpdateDatabase();
+            case UPDATE_DATABASE_REQUEST:
+                onUpdateDatabaseRequest();
+                break;
+            case UPDATE_DATABASE_RESPONSE:
+                onUpdateDatabaseComplete();
                 break;
             case QUIT:
                 onQuit();
@@ -167,7 +175,11 @@ public:
         std::cout << "onWithdrawNSF: " << std::endl;
     }
 
-    virtual void onUpdateDatabase() {
+    virtual void onUpdateDatabaseRequest() {
+        std::cout << "onUpdateDatabase: " << std::endl;
+    }
+
+    virtual void onUpdateDatabaseComplete() {
         std::cout << "onUpdateDatabase: " << std::endl;
     }
 

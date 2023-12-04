@@ -12,9 +12,7 @@ private:
     bool loggedIn = false;
 
 public:
-    ClientMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {
-
-    }
+    ClientMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {}
 
     void LoginRequest(std::string account, std::string pin) {
         std::cout << "LoginRequest: " << account + "," + pin << std::endl;

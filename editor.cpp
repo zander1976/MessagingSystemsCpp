@@ -1,14 +1,47 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <map>
-#include <vector>
-#include <string>
 #include <regex>
+#include <map>
+#include <string>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
 
+#include "messages.h"
 #include "accounts.h"
 
+class EditorMessageHandler : public MessageHandler {
+
+public:
+    EditorMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {}
+
+    void UpdateDatabase() {
+        std::cout << "UpdateDatabase: "  << std::endl;
+        sendMessage(UPDATE_DATABASE_REQUEST, "");
+        receiveMessage();
+    }
+
+    virtual void onUpdateDatabaseComplete() {
+        std::cout << "onUpdateDatabaseComplete: " << std::endl;
+    }
+};
+
+
 int main() {
+
+    // Create the message queue
+    key_t serverKey = ftok("./server.cpp", 49);
+    if (serverKey == -1) {
+        std::perror("Server Key error");
+        exit(1);
+    }
+    key_t editorkey = ftok("./editor.cpp", 51);
+    if (editorkey == -1) {
+        std::perror("Editor Key error");
+        exit(1);
+    }
+    EditorMessageHandler editor(serverKey, editorkey);
+
     std::regex accountPattern("\\d{5}");
     std::regex pinPattern("\\d{3}");    
     std::regex fundsPattern("\\d+\\.\\d{2}");
@@ -63,37 +96,9 @@ int main() {
         }
         
         serializeAccounts(accountList, "accounts.txt");
+        
+        editor.UpdateDatabase();
     }
 
-    /*for (const auto& account : accountList) {
-        std::cout << "Account Number: " << account.second.accountNumber << std::endl;
-        std::cout << "Account Pin: " << account.second.accountPin << std::endl;
-        std::cout << "Funds: " << account.second.funds << std::endl;
-        std::cout << "----------------------" << std::endl;
-    }
-
-    auto it = accountList.find("00011");
-    if (it != accountList.end()) {
-        Account& desiredAccount = it->second;
-        std::cout << "Found Account: " << desiredAccount.accountNumber << std::endl;
-        std::cout << "Account Pin: " << desiredAccount.accountPin << std::endl;
-        std::cout << "Funds: " << desiredAccount.funds << std::endl;
-        desiredAccount.funds = "420.69";
-        std::cout << "----------------------" << std::endl;
-    } else {
-        std::cout << "Account not found!" << std::endl;
-    }
-
-    for (const auto& account : accountList) {
-        std::cout << "Account Number: " << account.second.accountNumber << std::endl;
-        std::cout << "Account Pin: " << account.second.accountPin << std::endl;
-        std::cout << "Funds: " << account.second.funds << std::endl;
-        std::cout << "----------------------" << std::endl;
-    }
-
-
-    serializeAccounts(accountList, "accounts.txt");
-
-    */
     return 0;
 }
