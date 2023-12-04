@@ -1,7 +1,3 @@
-#include <iostream>
-#include <string>
-#include <sstream>
-
 #ifndef __MESSAGES_H__
 #define __MESSAGES_H__
 
@@ -82,13 +78,13 @@ protected:
                 onLoginRequest(message);
                 break;
             case LOGIN_PIN_WRONG:
-                onLoginPinWrong(message);
+                onLoginPinWrong();
                 break;
             case LOGIN_LOCKED:
-                onLoginLocked(message);
+                onLoginLocked();
                 break;
             case LOGIN_SUCCESS:
-                onLoginSuccess(message);
+                onLoginSuccess();
                 break;
             case BALANCE_REQUEST:
                 onBalanceRequest();
@@ -136,6 +132,7 @@ public:
     }
 
     ~MessageHandler() {
+        std::cout << "MessageHandler destructor:" << std::endl;
         // Delete the server queue
         if (msgctl(senderId, IPC_RMID, nullptr) == -1) {
             std::perror("Error deleting server queue.");
@@ -152,16 +149,16 @@ public:
         std::cout << "onLoginRequest: " << message << std::endl;
     }
 
-    virtual void onLoginPinWrong(std::string message) {
-        std::cout << "onLoginPinWrong: " << message << std::endl;
+    virtual void onLoginPinWrong() {
+        std::cout << "onLoginPinWrong: " << std::endl;
     }
 
-    virtual void onLoginLocked(std::string message) {
-        std::cout << "onLoginLocked: " << message << std::endl;
+    virtual void onLoginLocked() {
+        std::cout << "onLoginLocked: " << std::endl;
     }
 
-    virtual void onLoginSuccess(std::string message) {
-        std::cout << "onLoginSuccess: " << message << std::endl;
+    virtual void onLoginSuccess() {
+        std::cout << "onLoginSuccess: " << std::endl;
     }
 
     virtual void onBalanceRequest() {

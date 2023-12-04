@@ -7,9 +7,18 @@
 #include "messages.h"
 
 class ServerMessageHandler : public MessageHandler {
+private: 
+    bool running = true;
 public:
     ServerMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {
 
+    }
+
+    void WaitForMessage() {
+        std::cout << "WaitForMessage" << std::endl;
+        while(running) {
+            receiveMessage();
+        }
     }
     
     // Override methods for specific message types
@@ -22,11 +31,11 @@ public:
         std::getline(ss, pin, '\0');
         sendMessage(LOGIN_SUCCESS, "");
     }
-
-    void WaitForMessage() {
-        std::cout << "WaitForMessage" << std::endl;
-        receiveMessage();
+    virtual void onQuit() {
+        std::cout << "onQuit" << std::endl;
+        running=false;
     }
+
 };
 
 int main() {
@@ -43,6 +52,7 @@ int main() {
     }
 
     ServerMessageHandler server(clientkey, serverKey);
+
     server.WaitForMessage();
     
     return 0;

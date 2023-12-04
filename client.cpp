@@ -23,15 +23,15 @@ public:
         sendMessage(QUIT, "");
     }
 
-    virtual void onLoginPinWrong(std::string message) {
+    virtual void onLoginPinWrong() {
         std::cout << "onLoginPinWrong: " << std::endl;
     }
 
-    virtual void onLoginLocked(std::string message) {
+    virtual void onLoginLocked() {
         std::cout << "onLoginLocked: " << std::endl;
     }
 
-    virtual void onLoginSuccess(std::string message) {
+    virtual void onLoginSuccess() {
         std::cout << "onLoginSuccess: " << std::endl;
     }
 };
