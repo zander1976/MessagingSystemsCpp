@@ -81,10 +81,16 @@ public:
         sendMessage(BALANCE_FUNDS, "0.00");
     }
 
-    virtual void onWithdrawRequest() override {
-        std::cout << "onWithdrawRequest" << std::endl;
-        sendMessage(WITHDRAW_FUNDS_OK, "1000000");
-        //sendMessage(WITHDRAW_NSF, "");
+    virtual void onWithdrawRequest(std::string message) override {
+        std::cout << "onWithdrawRequest: " << message << std::endl;
+        accountList = deserializeAccounts("accounts.txt");
+        auto it = accountList.find(loggedInAccount);
+        if (it != accountList.end()) {
+            sendMessage(WITHDRAW_FUNDS_OK, it->second.funds);
+            return;
+        } 
+
+        sendMessage(WITHDRAW_NSF, "0.00");
     }
 
     virtual void onQuit() override {

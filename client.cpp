@@ -138,8 +138,12 @@ int main() {
 
             if (choice == "balance") {
                 client.RequestBalance();
+                break;
             } else if (choice == "withdrawal") {
+                 std::cout << "Amount to withdral: ";
+                 std::cin >> amount;
                 client.ReuqestWithdrawal(amount);
+                break;
             } else {
                  continue;
             }

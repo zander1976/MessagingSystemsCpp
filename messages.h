@@ -92,7 +92,7 @@ protected:
                 onBalanceFunds(message);
                 break;
             case WITHDRAW_REQUEST:
-                onWithdrawRequest();
+                onWithdrawRequest(message);
                 break;
             case WITHDRAW_FUNDS_OK:
                 onWithdrawFundsOK(message);
@@ -155,8 +155,8 @@ public:
         std::cout << "onBalanceFunds: " << message << std::endl;
     }
 
-    virtual void onWithdrawRequest() {
-        std::cout << "onWithdrawRequest: "  << std::endl;
+    virtual void onWithdrawRequest(std::string message) {
+        std::cout << "onWithdrawRequest: " << message << std::endl;
     }
 
     virtual void onWithdrawFundsOK(std::string message) {
