@@ -32,24 +32,24 @@ private:
     int receiveId;
 
 protected:
-void clearOldMessage(int queueId) {
-    // Clean out old server messages
-    while (true) {
-        GenericMessage tempMessage;
-        // Try to receive a message
-        ssize_t bytesReceived = msgrcv(queueId, &tempMessage, sizeof(tempMessage) - sizeof(long), 0, IPC_NOWAIT);
+    void clearOldMessage(int queueId) {
+        // Clean out old server messages
+        while (true) {
+            GenericMessage tempMessage;
+            // Try to receive a message
+            ssize_t bytesReceived = msgrcv(queueId, &tempMessage, sizeof(tempMessage) - sizeof(long), 0, IPC_NOWAIT);
 
-        if (bytesReceived == -1) {
-            if (errno == ENOMSG) {
-                // No more messages in the queue
-                break;
-            } else {
-                // Handle other errors if needed
-                std::perror("Error receiving message");
+            if (bytesReceived == -1) {
+                if (errno == ENOMSG) {
+                    // No more messages in the queue
+                    break;
+                } else {
+                    // Handle other errors if needed
+                    std::perror("Error receiving message");
+                }
             }
         }
     }
-}
 
     int sendMessage(MsgTypes type, std::string message) {
         GenericMessage outgoingMessage;
@@ -77,23 +77,18 @@ void clearOldMessage(int queueId) {
     }
 
     virtual void handleMessage(MsgTypes type, std::string message) {
-        std::istringstream ss(message);
         switch (type) {
             case LOGIN_REQUEST:
-                std::string account;
-                std::string pin;
-                std::getline(ss, account, ',');
-                std::getline(ss, pin, '\0');
-                onLoginRequest(account, pin);
+                onLoginRequest(message);
                 break;
             case LOGIN_PIN_WRONG:
-                onLoginPinWrong();
+                onLoginPinWrong(message);
                 break;
             case LOGIN_LOCKED:
-                onLoginLocked();
+                onLoginLocked(message);
                 break;
             case LOGIN_SUCCESS:
-                onLoginSuccess();
+                onLoginSuccess(message);
                 break;
             case BALANCE_REQUEST:
                 onBalanceRequest();
@@ -152,26 +147,21 @@ public:
         }
     } 
 
-    virtual void LoginRequest(std::string account, std::string pin) {
-        std::cout << "LoginRequest: " << account + "," + pin << std::endl;
-        sendMessage(LOGIN_REQUEST, account + "," + pin);
-    }
-
     // Methods to be overridden by derived classes
-    virtual void onLoginRequest(std::string account, std::string pin) {
-        std::cout << "onLoginRequest: " << account + "," + pin << std::endl;
+    virtual void onLoginRequest(std::string message) {
+        std::cout << "onLoginRequest: " << message << std::endl;
     }
 
-    virtual void onLoginPinWrong() {
-        std::cout << "Handling LOGIN_PIN_WRONG in base class." << std::endl;
+    virtual void onLoginPinWrong(std::string message) {
+        std::cout << "onLoginPinWrong: " << message << std::endl;
     }
 
-    virtual void onLoginLocked() {
-        std::cout << "Handling LOGIN_LOCKED in base class." << std::endl;
+    virtual void onLoginLocked(std::string message) {
+        std::cout << "onLoginLocked: " << message << std::endl;
     }
 
-    virtual void onLoginSuccess() {
-        std::cout << "Handling LOGIN_SUCCESS in base class." << std::endl;
+    virtual void onLoginSuccess(std::string message) {
+        std::cout << "onLoginSuccess: " << message << std::endl;
     }
 
     virtual void onBalanceRequest() {
@@ -203,29 +193,5 @@ public:
     }
 };
 
-class CustomMessageHandler : public MessageHandler {
-public:
-    // Override methods for specific message types
-    void onLoginRequest() override {
-        std::cout << "Handling LOGIN_REQUEST in custom class." << std::endl;
-        // Your custom logic for handling LOGIN_REQUEST
-    }
-
-    void onLoginPinWrong() override {
-        std::cout << "Handling LOGIN_PIN_WRONG in custom class." << std::endl;
-        // Your custom logic for handling LOGIN_PIN_WRONG
-    }
-
-    // Implement other overridden methods for different message types
-};
-
-int main() {
-    CustomMessageHandler customHandler;
-    customHandler.handleMessage(LOGIN_REQUEST);
-    customHandler.handleMessage(LOGIN_PIN_WRONG);
-    // Call other message handling as needed
-
-    return 0;
-}
 
 #endif

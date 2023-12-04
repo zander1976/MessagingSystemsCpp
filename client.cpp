@@ -1,184 +1,124 @@
 #include <iostream>
 #include <cstring>
+#include <regex>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include "messages.h"
 
+class ClientMessageHandler : public MessageHandler {
+public:
+    ClientMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {
+
+    }
+
+    void LoginRequest(std::string account, std::string pin) {
+        std::cout << "LoginRequest: " << account + "," + pin << std::endl;
+        sendMessage(LOGIN_REQUEST, account + "," + pin);
+        receiveMessage();
+    }
+
+    void QuitRequest() {
+        std::cout << "QuitRequest: " << std::endl;
+        sendMessage(QUIT, "");
+    }
+
+    virtual void onLoginPinWrong(std::string message) {
+        std::cout << "onLoginPinWrong: " << std::endl;
+    }
+
+    virtual void onLoginLocked(std::string message) {
+        std::cout << "onLoginLocked: " << std::endl;
+    }
+
+    virtual void onLoginSuccess(std::string message) {
+        std::cout << "onLoginSuccess: " << std::endl;
+    }
+};
+
 int main() {
+
     // Create the message queue
-    key_t serverKey = ftok("./server", 49);
+    key_t serverKey = ftok("./server.cpp", 49);
     if (serverKey == -1) {
         std::perror("Server Key error");
         exit(1);
     }
-    key_t clientkey = ftok("./client", 50);
+    key_t clientkey = ftok("./client.cpp", 50);
     if (clientkey == -1) {
         std::perror("Client Key error");
         exit(1);
     }
 
-    int serverid = msgget(serverKey, 0666 | IPC_CREAT);
-    if (serverid == -1) {
-        std::perror("Error creating server queue");
-    }
-
-    // Create the client queue
-    int clientid = msgget(clientkey, 0666 | IPC_CREAT);
-    if (clientid == -1) {
-        std::perror("Error creating server queue");
-    }
-
-    // Clean out old server messages
-    while (true) {
-        GenericMessage tempMessage;
-        // Try to receive a message
-        ssize_t bytesReceived = msgrcv(serverid, &tempMessage, sizeof(tempMessage) - sizeof(long), 0, IPC_NOWAIT);
-
-        if (bytesReceived == -1) {
-            if (errno == ENOMSG) {
-                // No more messages in the queue
-                break;
-            } else {
-                // Handle other errors if needed
-                std::perror("Error receiving message");
-                break;
-            }
-        }
-    }    
-
-    // Clear out old client messages
-    while (true) {
-
-        GenericMessage tempMessage;
-        // Try to receive a message
-        ssize_t bytesReceived = msgrcv(clientid, &tempMessage, sizeof(tempMessage) - sizeof(long), 0, IPC_NOWAIT);
-
-        if (bytesReceived == -1) {
-            if (errno == ENOMSG) {
-                // No more messages in the queue
-                break;
-            } else {
-                // Handle other errors if needed
-                std::perror("Error receiving message");
-                break;
-            }
-        }
-        // Discard received message
-    }    
+    ClientMessageHandler client(serverKey, clientkey);
+    std::regex accountPattern("\\d{5}");
+    std::regex pinPattern("\\d{3}");    
+    std::regex fundsPattern("\\d+\\.\\d{2}");
 
     while (true) {
-        GenericMessage message;
         std::string account;
-        std::string password;
+        std::string pin;
 
         std::cout << "Please enter your account number: ";
         std::cin >> account;
 
         if (account == "x") {
-            message.msgType = QUIT;
-            if (msgsnd(serverid, &message, sizeof(message) - sizeof(long), 0) == -1) {
-                std::perror("Send message failed");
-            }
+            client.QuitRequest();
             std::cout << "Quit!" << std::endl;
             break;
         }
+        if (!std::regex_match(account, accountPattern)) {
+            std::cout << "Invalid account number format." << std::endl;
+            continue;
+        }            
 
         std::cout << "Please enter your password: ";
-        std::cin >> password;
+        std::cin >> pin;
+        if (!std::regex_match(pin, pinPattern)) {
+            std::cout << "Invalid account pin format." << std::endl;
+            continue;
+        } 
+        client.LoginRequest(account, pin);
 
-        message.msgType = LOGIN_REQUEST;
-        
-        std::strncpy(message.msgResult, account.c_str(), 5);
-        message.msgResult[5] = '\0'; 
-        std::strncat(message.msgResult, ",", 1);
-        std::strncat(message.msgResult, password.c_str(), 3);
-        message.msgResult[8] = '\0'; 
-        std::cout << "Sending; " << message.msgResult << std::endl;
-        std::memset(message.msgResult + 8, '\0', sizeof(message.msgResult) - 8);
 
-        std::cout << "Sending Login Request: Account - " << account
-                  << ", Password - " << password << std::endl;
+        // while(true) {
+        //     // Logged in
+        //     std::string choice; 
+        //     std::string amount; 
+        //     std::cout << "Menu (balance or withdrawal): ";
+        //     std::cin >> choice;
 
-        if (msgsnd(serverid, &message, sizeof(message) - sizeof(long), 0) == -1) {
-            std::perror("Send message failed");
-            break;
-        }
+        //     GenericMessage menuMessage;
 
-        // Wait for the response to the login request
-        GenericMessage response;
-        msgrcv(clientid, &response, sizeof(response) - sizeof(long), 0, 0);
+        //     if (choice == "balance") {
+        //         menuMessage.msgType = BALANCE_REQUEST;
 
-        std::cout << "Recieved: " << response.msgType << " - " << response.msgResult << std::endl;
+        //     } else if (choice == "withdrawal") {
+        //         menuMessage.msgType = WITHDRAW_REQUEST;
+        //         std::cout << "Menu (balance or withdraw): ";
+        //         std::cin >> amount;
 
-        std::string resultString(response.msgResult);
+        //         // Copy the string to message.msgResult with null-termination
+        //         std::strncpy(message.msgResult, amount.c_str(), sizeof(message.msgResult) - 1);
+        //         message.msgResult[sizeof(message.msgResult) - 1] = '\0'; // Ensure null-termination
 
-        if (response.msgType == LOGIN_RESPONSE) {
-            if (resultString == "WRONG_PIN") {
-                std::cout << "Wrong Password" << std::endl;
-                continue;
-            } else if (resultString == "LOCKED") {
-                std::cout << "Locked" << std::endl;
-                break;
-            } else if (resultString == "LOGIN_OK") {
-                std::cout << "Login Success: " << std::endl;
-            } else {
-                std::cout << resultString << std::endl;
-                std::perror("No idea how we got here!");
-                break;
-            }
-        } else {
-            std::perror("No idea how we got here!");
-        }
+        //         // Ensure the rest of the buffer is null-terminated if needed
+        //         if (amount.length() < sizeof(message.msgResult)) {
+        //             std::memset(message.msgResult + amount.length(), '\0', sizeof(message.msgResult) - amount.length());
+        //         }                
+        //     } else {
+        //         continue;
+        //     }
+        //     if (msgsnd(serverid, &menuMessage, sizeof(menuMessage) - sizeof(long), 0) == -1) {
+        //         std::perror("Send message failed");
+        //         break;
+        //     }
 
-        while(true) {
-            // Logged in
-            std::string choice; 
-            std::string amount; 
-            std::cout << "Menu (balance or withdrawal): ";
-            std::cin >> choice;
+        //     GenericMessage response;
+        //     msgrcv(clientid, &response, sizeof(response) - sizeof(long), 0, 0);
 
-            GenericMessage menuMessage;
-
-            if (choice == "balance") {
-                menuMessage.msgType = BALANCE_REQUEST;
-
-            } else if (choice == "withdrawal") {
-                menuMessage.msgType = WITHDRAW_REQUEST;
-                std::cout << "Menu (balance or withdraw): ";
-                std::cin >> amount;
-
-                // Copy the string to message.msgResult with null-termination
-                std::strncpy(message.msgResult, amount.c_str(), sizeof(message.msgResult) - 1);
-                message.msgResult[sizeof(message.msgResult) - 1] = '\0'; // Ensure null-termination
-
-                // Ensure the rest of the buffer is null-terminated if needed
-                if (amount.length() < sizeof(message.msgResult)) {
-                    std::memset(message.msgResult + amount.length(), '\0', sizeof(message.msgResult) - amount.length());
-                }                
-            } else {
-                continue;
-            }
-            if (msgsnd(serverid, &menuMessage, sizeof(menuMessage) - sizeof(long), 0) == -1) {
-                std::perror("Send message failed");
-                break;
-            }
-
-            GenericMessage response;
-            msgrcv(clientid, &response, sizeof(response) - sizeof(long), 0, 0);
-
-            std::cout << "Recieved: " << response.msgType << " - " << response.msgResult << std::endl;
-        }
-    }
-
-    // Delete the server queue
-    if (msgctl(serverid, IPC_RMID, nullptr) == -1) {
-        std::perror("Error deleting server queue.");
-    }
-
-    // Delete the client queue
-    if (msgctl(clientid, IPC_RMID, nullptr) == -1) {
-        std::perror("Error deleting client queue.");
+        //     std::cout << "Recieved: " << response.msgType << " - " << response.msgResult << std::endl;
+        // }
     }
 
     return 0;
