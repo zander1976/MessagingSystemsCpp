@@ -23,11 +23,10 @@ struct GenericMessage {
 
 
 class MessageHandler {
-private:
+protected:
     int senderId;
     int receiveId;
 
-protected:
     void clearOldMessage(int queueId) {
         // Clean out old server messages
         while (true) {
@@ -90,13 +89,13 @@ protected:
                 onBalanceRequest();
                 break;
             case BALANCE_FUNDS:
-                onBalanceFunds();
+                onBalanceFunds(message);
                 break;
             case WITHDRAW_REQUEST:
                 onWithdrawRequest();
                 break;
             case WITHDRAW_FUNDS_OK:
-                onWithdrawFundsOK();
+                onWithdrawFundsOK(message);
                 break;
             case WITHDRAW_NSF:
                 onWithdrawNSF();
@@ -131,19 +130,6 @@ public:
         clearOldMessage(receiveId);
     }
 
-    ~MessageHandler() {
-        std::cout << "MessageHandler destructor:" << std::endl;
-        // Delete the server queue
-        if (msgctl(senderId, IPC_RMID, nullptr) == -1) {
-            std::perror("Error deleting server queue.");
-        }
-
-        // Delete the client queue
-        if (msgctl(receiveId, IPC_RMID, nullptr) == -1) {
-            std::perror("Error deleting client queue.");
-        }
-    } 
-
     // Methods to be overridden by derived classes
     virtual void onLoginRequest(std::string message) {
         std::cout << "onLoginRequest: " << message << std::endl;
@@ -162,31 +148,31 @@ public:
     }
 
     virtual void onBalanceRequest() {
-        std::cout << "Handling BALANCE_REQUEST in base class." << std::endl;
+        std::cout << "onBalanceRequest: " << std::endl;
     }
 
-    virtual void onBalanceFunds() {
-        std::cout << "Handling BALANCE_FUNDS in base class." << std::endl;
+    virtual void onBalanceFunds(std::string message) {
+        std::cout << "onBalanceFunds: " << message << std::endl;
     }
 
     virtual void onWithdrawRequest() {
-        std::cout << "Handling WITHDRAW_REQUEST in base class." << std::endl;
+        std::cout << "onWithdrawRequest: "  << std::endl;
     }
 
-    virtual void onWithdrawFundsOK() {
-        std::cout << "Handling WITHDRAW_FUNDS_OK in base class." << std::endl;
+    virtual void onWithdrawFundsOK(std::string message) {
+        std::cout << "onWithdrawFundsOK: " << message << std::endl;
     }
 
     virtual void onWithdrawNSF() {
-        std::cout << "Handling WITHDRAW_NSF in base class." << std::endl;
+        std::cout << "onWithdrawNSF: " << std::endl;
     }
 
     virtual void onUpdateDatabase() {
-        std::cout << "Handling UPDATE_DATABASE in base class." << std::endl;
+        std::cout << "onUpdateDatabase: " << std::endl;
     }
 
     virtual void onQuit() {
-        std::cout << "Handling QUIT in base class." << std::endl;
+        std::cout << "onQuit: " << std::endl;
     }
 };
 

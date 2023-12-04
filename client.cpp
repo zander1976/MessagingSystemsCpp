@@ -7,6 +7,10 @@
 #include "messages.h"
 
 class ClientMessageHandler : public MessageHandler {
+private:
+    bool locked = false;
+    bool loggedIn = false;
+
 public:
     ClientMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {
 
@@ -18,22 +22,56 @@ public:
         receiveMessage();
     }
 
+    void RequestBalance() {
+        std::cout << "RequestBalance: " << std::endl;
+        sendMessage(BALANCE_REQUEST, "");
+        receiveMessage();
+    }
+    void ReuqestWithdrawal(std::string amount) {
+        std::cout << "ReuqestWithdrawal: " << amount << std::endl;
+        sendMessage(WITHDRAW_REQUEST, amount);
+        receiveMessage();
+    }
+
     void QuitRequest() {
         std::cout << "QuitRequest: " << std::endl;
         sendMessage(QUIT, "");
     }
 
-    virtual void onLoginPinWrong() {
+    bool isLocked() {
+        return locked;
+    }
+
+    bool isLoggedIn() {
+        return loggedIn;
+    }
+
+    virtual void onLoginPinWrong() override {
         std::cout << "onLoginPinWrong: " << std::endl;
     }
 
-    virtual void onLoginLocked() {
+    virtual void onLoginLocked() override {
         std::cout << "onLoginLocked: " << std::endl;
+        locked = true;
     }
 
-    virtual void onLoginSuccess() {
+    virtual void onLoginSuccess() override {
         std::cout << "onLoginSuccess: " << std::endl;
+        loggedIn = true;
     }
+
+    virtual void onBalanceFunds(std::string message)override {
+        std::cout << "ReuqestWithdrawal: " << message << std::endl;
+    }
+
+    virtual void onWithdrawFundsOK(std::string message) override {
+        std::cout << "ReuqestWithdrawal: " << message << std::endl;
+    }
+
+    virtual void onWithdrawNSF() override {
+        std::cout << "ReuqestWithdrawal: " << std::endl;
+    }
+
 };
 
 int main() {
@@ -50,12 +88,13 @@ int main() {
         exit(1);
     }
 
-    ClientMessageHandler client(serverKey, clientkey);
     std::regex accountPattern("\\d{5}");
     std::regex pinPattern("\\d{3}");    
     std::regex fundsPattern("\\d+\\.\\d{2}");
 
     while (true) {
+        ClientMessageHandler client(serverKey, clientkey);
+
         std::string account;
         std::string pin;
 
@@ -80,45 +119,31 @@ int main() {
         } 
         client.LoginRequest(account, pin);
 
+        if (client.isLocked()) {
+            std::cout << "Account Locked" << std::endl;
+            return 0;
+        }
 
-        // while(true) {
-        //     // Logged in
-        //     std::string choice; 
-        //     std::string amount; 
-        //     std::cout << "Menu (balance or withdrawal): ";
-        //     std::cin >> choice;
+        if (!client.isLoggedIn()) {
+            std::cout << "Login Failed" << std::endl;
+            continue;
+        }
 
-        //     GenericMessage menuMessage;
+         while(true) {
+             // Logged in
+             std::string choice; 
+             std::string amount; 
+             std::cout << "Menu (balance or withdrawal): ";
+             std::cin >> choice;
 
-        //     if (choice == "balance") {
-        //         menuMessage.msgType = BALANCE_REQUEST;
-
-        //     } else if (choice == "withdrawal") {
-        //         menuMessage.msgType = WITHDRAW_REQUEST;
-        //         std::cout << "Menu (balance or withdraw): ";
-        //         std::cin >> amount;
-
-        //         // Copy the string to message.msgResult with null-termination
-        //         std::strncpy(message.msgResult, amount.c_str(), sizeof(message.msgResult) - 1);
-        //         message.msgResult[sizeof(message.msgResult) - 1] = '\0'; // Ensure null-termination
-
-        //         // Ensure the rest of the buffer is null-terminated if needed
-        //         if (amount.length() < sizeof(message.msgResult)) {
-        //             std::memset(message.msgResult + amount.length(), '\0', sizeof(message.msgResult) - amount.length());
-        //         }                
-        //     } else {
-        //         continue;
-        //     }
-        //     if (msgsnd(serverid, &menuMessage, sizeof(menuMessage) - sizeof(long), 0) == -1) {
-        //         std::perror("Send message failed");
-        //         break;
-        //     }
-
-        //     GenericMessage response;
-        //     msgrcv(clientid, &response, sizeof(response) - sizeof(long), 0, 0);
-
-        //     std::cout << "Recieved: " << response.msgType << " - " << response.msgResult << std::endl;
-        // }
+            if (choice == "balance") {
+                client.RequestBalance();
+            } else if (choice == "withdrawal") {
+                client.ReuqestWithdrawal(amount);
+            } else {
+                 continue;
+            }
+        }
     }
 
     return 0;
