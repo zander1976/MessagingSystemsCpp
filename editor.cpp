@@ -3,28 +3,14 @@
 #include <regex>
 #include <map>
 #include <string>
+
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 
 #include "messages.h"
 #include "accounts.h"
-
-class EditorMessageHandler : public MessageHandler {
-
-public:
-    EditorMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {}
-
-    void UpdateDatabase() {
-        std::cout << "UpdateDatabase: "  << std::endl;
-        sendMessage(UPDATE_DATABASE_REQUEST, "");
-        receiveMessage();
-    }
-
-    virtual void onUpdateDatabaseComplete() {
-        std::cout << "onUpdateDatabaseComplete: " << std::endl;
-    }
-};
+#include "editor.h"
 
 
 int main() {
