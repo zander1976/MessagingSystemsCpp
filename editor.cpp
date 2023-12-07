@@ -3,6 +3,8 @@
 #include <regex>
 #include <map>
 #include <string>
+#include <fcntl.h>
+#include <semaphore.h>
 
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -14,6 +16,12 @@
 
 
 int main() {
+    // Create the semaphore
+    sem_t *sem = sem_open("databasesem", O_CREAT, 0644, 1);
+    if (sem == SEM_FAILED) {
+        std::perror("Semaphore creation/opening failed.");
+        return 1;
+    }    
 
     // Create the message queue
     key_t serverKey = ftok("./server.cpp", 49);
@@ -26,45 +34,55 @@ int main() {
         std::perror("Editor Key error");
         exit(1);
     }
-    EditorMessageHandler editor(serverKey, editorkey);
+    EditorMessageHandler editor(serverKey, editorkey, sem);
 
     std::regex accountPattern("\\d{5}");
     std::regex pinPattern("\\d{3}");    
     std::regex fundsPattern("\\d+\\.\\d{2}");
+#ifdef _WIN32
+    system ("CLS");
+#else
+    system("clear");
+#endif
 
     while(true) {
+
+        std::cout << "\033[36mWelcome to Ben's Bank Account Editor!\033[0m" << std::endl << std::endl;
+
         std::string account;
         std::string password;
         std::string funds;
 
         std::cout << "---------------------------------" << std::endl;
-        std::cout << "Please enter your account number: ";
+        std::cout << "Please enter your account number (x to quit): ";
         std::cin >> account;
         if (account == "x") {
-            std::cout << "Quit!" << std::endl;
+            std::cout << "\033[32mThank you, Goodbye!\033[0m" << std::endl << std::endl;
             break;
         }
         if (!std::regex_match(account, accountPattern)) {
-            std::cout << "Invalid account number format." << std::endl;
+            std::cout << "\033[31mInvalid account number format.\033[0m" << std::endl << std::endl;
             continue;
         }            
 
         std::cout << "Please enter your password: ";
         std::cin >> password;
         if (!std::regex_match(password, pinPattern)) {
-            std::cout << "Invalid account pin format." << std::endl;
+            std::cout << "\033[31mInvalid account pin format.\033[0m" << std::endl << std::endl;
             continue;
         }        
 
         std::cout << "Funds: ";
         std::cin >> funds;
         if (!std::regex_match(funds, fundsPattern)) {
-            std::cout << "Invalid funds format." << std::endl;
+            std::cout << "\033[31mInvalid fund format ($.$$)\033[0m" << std::endl << std::endl;
             continue;
         }
         
         std::map<std::string, Account> accountList;
-        accountList = deserializeAccounts("accounts.txt");
+        sem_wait(sem);
+            accountList = deserializeAccounts("accounts.txt");
+        sem_post(sem);
 
         // Look for existing account
         auto it = accountList.find(account);
@@ -81,7 +99,9 @@ int main() {
             accountList[account] = newrecord;
         }
         
-        serializeAccounts(accountList, "accounts.txt");
+        sem_wait(sem);
+            serializeAccounts(accountList, "accounts.txt");
+        sem_post(sem);
         
         editor.UpdateDatabase();
     }

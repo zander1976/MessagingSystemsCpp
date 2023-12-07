@@ -25,7 +25,8 @@ void serializeAccounts(const std::map<std::string, Account>& accountsMap, const 
         file << pair.second.accountNumber << "," << pair.second.accountPin << "," << pair.second.funds << "\n";
     }
     file.close();
-    std::cout << "Map serialized to file: " << filename << std::endl;
+    //std::cout << "Map serialized to file: " << filename << std::endl;
+    std::cout << std::endl;
 }
 
 std::map<std::string, Account> deserializeAccounts(const std::string& filename) {

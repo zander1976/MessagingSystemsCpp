@@ -10,14 +10,6 @@ int main() {
     int *shared_value;
     const int SIZE = sizeof(int);
     
-    //int res = sem_unlink("benssemaphore");
-    //if (res == 0) {
-    //    std::cout << "Semaphore " << "benssemaphore" << " deleted successfully." << std::endl;
-    //} else {
-    //    std::perror("Failed to delete the semaphore");
-    //    return 1;
-    //}
-
     // Create the semaphore
     sem_t *sem = sem_open("benssemaphore", O_CREAT, 0644, 1);
     if (sem == SEM_FAILED) {

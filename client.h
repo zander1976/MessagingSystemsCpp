@@ -14,24 +14,20 @@ public:
     ClientMessageHandler(key_t sendKey, key_t receiveKey) : MessageHandler(sendKey, receiveKey) {}
 
     void LoginRequest(std::string account, std::string pin) {
-        std::cout << "LoginRequest: " << account + "," + pin << std::endl;
         sendMessage(LOGIN_REQUEST, account + "," + pin);
         receiveMessage();
     }
 
     void RequestBalance() {
-        std::cout << "RequestBalance: " << std::endl;
         sendMessage(BALANCE_REQUEST, "");
         receiveMessage();
     }
     void ReuqestWithdrawal(std::string amount) {
-        std::cout << "ReuqestWithdrawal: " << amount << std::endl;
         sendMessage(WITHDRAW_REQUEST, amount);
         receiveMessage();
     }
 
     void QuitRequest() {
-        std::cout << "QuitRequest: " << std::endl;
         sendMessage(QUIT, "");
     }
 
@@ -44,29 +40,29 @@ public:
     }
 
     virtual void onLoginPinWrong() override {
-        std::cout << "onLoginPinWrong: " << std::endl;
+        std::cout << "\033[31mIncorrect Pin. Please try again.\033[0m" << std::endl << std::endl;
     }
 
     virtual void onLoginLocked() override {
-        std::cout << "onLoginLocked: " << std::endl;
+        std::cout << "\033[31mIncorrect Pin. Account is now Locked!\033[0m" << std::endl << std::endl;
         locked = true;
     }
 
     virtual void onLoginSuccess() override {
-        std::cout << "onLoginSuccess: " << std::endl;
+        std::cout << std::endl << "\033[32mLogin Sucessful!\033[0m" << std::endl << std::endl;
         loggedIn = true;
     }
 
     virtual void onBalanceFunds(std::string message)override {
-        std::cout << "ReuqestWithdrawal: " << message << std::endl;
+        std::cout << "Your balance is: " << "\033[32m" << message << "\033[0m" << std::endl << std::endl;
     }
 
     virtual void onWithdrawFundsOK(std::string message) override {
-        std::cout << "ReuqestWithdrawal: " << message << std::endl;
+        std::cout << "Successful Withdrawal amount: " << "\033[32m" << message << "\033[0m" << std::endl << std::endl;
     }
 
     virtual void onWithdrawNSF() override {
-        std::cout << "ReuqestWithdrawal: " << std::endl;
+        std::cout << "\033[31mInsufficient funds\033[0m" << std::endl << std::endl;
     }
 
 };

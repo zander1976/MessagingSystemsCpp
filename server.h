@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <fcntl.h>
+#include <semaphore.h>
 
 
 #ifndef __SERVER_H__
@@ -36,9 +38,11 @@ private:
     int loginAttempts = 0;
     std::string loggedInAccount; 
     std::map<std::string, Account> accountList;
+    sem_t *sem;
 
 public:
-    ServerMessageHandler(key_t sendKey, key_t receiveKey, key_t editorKey) : MessageHandler(sendKey, receiveKey) {
+    ServerMessageHandler(key_t sendKey, key_t receiveKey, key_t editorKey, sem_t *sem) : MessageHandler(sendKey, receiveKey) {
+        this->sem = sem;
         editorId = msgget(editorKey, 0666 | IPC_CREAT);
         if (editorId == -1) {
             std::perror("Error creating server queue");
@@ -81,7 +85,10 @@ public:
         std::getline(ss, pin, '\0');
 
         // The drawing showed that everything talks directly to the database
-        accountList = deserializeAccounts("accounts.txt");
+        //accountList = deserializeAccounts("accounts.txt");
+        sem_wait(sem);
+            accountList = deserializeAccounts("accounts.txt");
+        sem_post(sem);
 
         // Look for existing account
         auto it = accountList.find(account);
@@ -104,7 +111,11 @@ public:
 
     virtual void onBalanceRequest() override {
         std::cout << "onBalanceRequest" << std::endl;
-        accountList = deserializeAccounts("accounts.txt");
+        //accountList = deserializeAccounts("accounts.txt");
+        sem_wait(sem);
+            accountList = deserializeAccounts("accounts.txt");
+        sem_post(sem);        
+
         auto it = accountList.find(loggedInAccount);
         if (it != accountList.end()) {
             sendMessage(BALANCE_FUNDS, it->second.funds);
@@ -115,7 +126,11 @@ public:
 
     virtual void onWithdrawRequest(std::string message) override {
         std::cout << "onWithdrawRequest: " << message << std::endl;
-        accountList = deserializeAccounts("accounts.txt");
+        //accountList = deserializeAccounts("accounts.txt");
+        sem_wait(sem);
+            accountList = deserializeAccounts("accounts.txt");
+        sem_post(sem);
+
         auto it = accountList.find(loggedInAccount);
         if (it != accountList.end()) {
             int balance = convertToCents(it->second.funds);
@@ -124,9 +139,14 @@ public:
             int resultInCents = balance - withdrawalAmount; 
             if (resultInCents < 0) {
                 sendMessage(WITHDRAW_NSF, "");
+                return;
             }
             it->second.funds = centsToDollars(resultInCents);
-            serializeAccounts(accountList, "accounts.txt");
+            //serializeAccounts(accountList, "accounts.txt");
+            sem_wait(sem);
+                serializeAccounts(accountList, "accounts.txt");
+            sem_post(sem);
+
             sendMessage(WITHDRAW_FUNDS_OK, message);
             return;
         } 
@@ -134,7 +154,7 @@ public:
     }
 
     virtual void onUpdateDatabaseRequest() {
-        std::cout << "onUpdateDatabase: " << std::endl;
+        std::cout << "onUpdateDatabaseRequest: " << std::endl;
         sendMessage(UPDATE_DATABASE_RESPONSE, "", editorId);
     }
 

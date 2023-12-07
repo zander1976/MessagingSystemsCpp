@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <fcntl.h>
+#include <semaphore.h>
 
 #include "messages.h"
 #include "accounts.h"
@@ -14,6 +16,14 @@
 
 
 int main() {
+
+    // Create the semaphore
+    sem_t *sem = sem_open("databasesem", O_CREAT, 0644, 1);
+    if (sem == SEM_FAILED) {
+        std::perror("Semaphore creation/opening failed.");
+        return 1;
+    }
+        
     // Create the message queue
     key_t serverKey = ftok("./server.cpp", 49);
     if (serverKey == -1) {
@@ -32,7 +42,7 @@ int main() {
         exit(1);
     }
 
-    ServerMessageHandler server(clientkey, serverKey, editorkey);
+    ServerMessageHandler server(clientkey, serverKey, editorkey, sem);
 
     server.WaitForMessage();
     
